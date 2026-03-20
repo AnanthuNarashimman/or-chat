@@ -5,7 +5,12 @@
 [![Pinecone](https://img.shields.io/badge/Pinecone-Vector%20DB-0bb97f)](https://www.pinecone.io/)
 [![OpenRouter](https://img.shields.io/badge/OpenRouter-LLM%20Gateway-ff4b4b)](https://openrouter.ai/)
 
-Local chat app using OpenRouter for LLMs and Pinecone for semantic memory.
+Local chat app using OpenRouter for LLMs and Pinecone for semantic memory. I built this mainly to try out OpenRouter and don’t have further development plans beyond this.
+
+## Models
+- NVIDIA: `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3-nano-30b-a3b:free`, `nvidia/nemotron-nano-9b-v2:free`, `nvidia/nemotron-nano-12b-v2-vl:free`
+- Arcee AI: `arcee-ai/trinity-large-preview:free`, `arcee-ai/trinity-mini:free`
+- StepFun: `stepfun/step-3.5-flash:free`
 
 ## Requirements
 - Node.js 18+
