@@ -30,6 +30,7 @@ Local chat app using OpenRouter for LLMs and Pinecone for semantic memory. I bui
    PINECONE_API_KEY=your-pinecone-api-key
    PINECONE_INDEX=orchat-memory
    ```
+   In the Pinecone dashboard, sign up/sign in and create an index whose name exactly matches `PINECONE_INDEX` (e.g. `orchat-memory`).
 
 3. Start the dev server:
    ```bash
