@@ -1,0 +1,14 @@
+{
+  "name": "orchat",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@pinecone-database/pinecone": "^3.0.0",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
+  }
+}
