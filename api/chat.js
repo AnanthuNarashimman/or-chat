@@ -12,6 +12,8 @@ const PINECONE_INDEX = process.env.PINECONE_INDEX || 'orchat-memory';
 
 // ---------- helpers ----------
 
+// Takes text and turns it into a list of numbers the computer can use to find similar things later
+
 async function embed(text, orKey) {
   const res = await fetch(`${OPENROUTER_API}/embeddings`, {
     method: 'POST',
@@ -29,6 +31,8 @@ async function embed(text, orKey) {
   return data.data[0].embedding;
 }
 
+// Searches through past conversations and brings back the most relevant stuff based on what you just said
+
 async function queryMemory(pc, namespace, vector, topK) {
   try {
     const index = pc.index(PINECONE_INDEX).namespace(namespace);
@@ -38,6 +42,8 @@ async function queryMemory(pc, namespace, vector, topK) {
     return [];
   }
 }
+
+// Stores messages and their numbers in the database so we can remember them for next time
 
 async function upsertMemory(pc, namespace, id, vector, metadata) {
   try {
@@ -49,6 +55,8 @@ async function upsertMemory(pc, namespace, id, vector, metadata) {
 }
 
 // ---------- handler ----------
+
+// This is the main worker that handles incoming chat requests, orchestrates everything, and sends back the streaming response
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
@@ -210,6 +218,8 @@ export default async function handler(req) {
     return errorResponse(err.message, 500);
   }
 }
+
+// Wraps error messages in a tidy little JSON package with the right status code
 
 function errorResponse(msg, status = 400) {
   return new Response(JSON.stringify({ error: msg }), {
