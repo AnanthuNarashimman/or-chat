@@ -267,8 +267,9 @@
     border-radius: 8px;
     font-size: 14px;
     line-height: 1.65;
-    white-space: pre-wrap;
+    white-space: normal;
     word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
   .message-row.user .bubble {
@@ -276,6 +277,7 @@
     color: var(--accent-fg);
     border-radius: 8px 8px 2px 8px;
     max-width: 520px;
+    white-space: pre-wrap;
   }
 
   .message-row.assistant .bubble {
@@ -284,6 +286,68 @@
     border: 1px solid var(--border);
     border-radius: 8px 8px 8px 2px;
     width: 100%;
+  }
+
+  .message-row.assistant .bubble > *:first-child { margin-top: 0; }
+  .message-row.assistant .bubble > *:last-child { margin-bottom: 0; }
+
+  .message-row.assistant .bubble p,
+  .message-row.assistant .bubble ul,
+  .message-row.assistant .bubble ol,
+  .message-row.assistant .bubble table,
+  .message-row.assistant .bubble blockquote,
+  .message-row.assistant .bubble pre {
+    margin: 10px 0;
+  }
+
+  .message-row.assistant .bubble h1,
+  .message-row.assistant .bubble h2,
+  .message-row.assistant .bubble h3,
+  .message-row.assistant .bubble h4,
+  .message-row.assistant .bubble h5,
+  .message-row.assistant .bubble h6 {
+    margin: 12px 0 8px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  .message-row.assistant .bubble h1 { font-size: 1.4em; }
+  .message-row.assistant .bubble h2 { font-size: 1.25em; }
+  .message-row.assistant .bubble h3 { font-size: 1.12em; }
+
+  .message-row.assistant .bubble ul,
+  .message-row.assistant .bubble ol {
+    padding-left: 1.2rem;
+  }
+
+  .message-row.assistant .bubble li + li {
+    margin-top: 4px;
+  }
+
+  .message-row.assistant .bubble table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .message-row.assistant .bubble th,
+  .message-row.assistant .bubble td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .message-row.assistant .bubble th {
+    background: var(--bg);
+    font-weight: 500;
+  }
+
+  .message-row.assistant .bubble blockquote {
+    border-left: 3px solid var(--border-strong);
+    padding-left: 10px;
+    color: var(--text-secondary);
   }
 
   .bubble.processing {
@@ -598,6 +662,8 @@
     .key-wrap input { width: 130px; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 </head>
 <body>
 
@@ -861,11 +927,21 @@
   }
 
   function fmt(text) {
-    text = esc(text);
-    text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, l, c) => `<pre><code>${c.trim()}</code></pre>`);
-    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    return text;
+    if (!text) return '';
+
+    // Use GFM parser for reliable tables, headings, lists, and fenced code blocks.
+    if (window.marked && window.DOMPurify) {
+      const rawHtml = marked.parse(text, {
+        gfm: true,
+        breaks: true,
+        mangle: false,
+        headerIds: false,
+      });
+      return DOMPurify.sanitize(rawHtml);
+    }
+
+    // Safe fallback if parser scripts fail to load.
+    return esc(text).replace(/\n/g, '<br>');
   }
 
   function esc(t) {
@@ -1024,15 +1100,21 @@
   }
 
   // --- Memory search ---
+  const memSearchEl = document.getElementById('memSearch');
+  const memResultsEl = document.getElementById('memResults');
+  const clearMemBtn = document.getElementById('clearMemBtn');
+
   let memSearchDebounce;
-  memSearchEl.addEventListener('input', () => {
-    clearTimeout(memSearchDebounce);
-    if (!memSearchEl.value.trim()) { memResultsEl.innerHTML = ''; return; }
-    memSearchDebounce = setTimeout(searchMemory, 600);
-  });
+  if (memSearchEl && memResultsEl) {
+    memSearchEl.addEventListener('input', () => {
+      clearTimeout(memSearchDebounce);
+      if (!memSearchEl.value.trim()) { memResultsEl.innerHTML = ''; return; }
+      memSearchDebounce = setTimeout(searchMemory, 600);
+    });
+  }
 
   async function searchMemory() {
-    const key = apiKeyEl.value.trim();
+    const key = apiKey;
     const q = memSearchEl.value.trim();
     if (!key || !q) return;
     memResultsEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 0">Searching...</div>';
@@ -1040,7 +1122,7 @@
       const res = await fetch(`${API_BASE}/api/memory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-or-key': key },
-        body: JSON.stringify({ query: q, userId: USER_ID, topK: 8 }),
+        body: JSON.stringify({ query: q, userId: userId, topK: 8 }),
       });
       const data = await res.json();
       if (!data.matches?.length) {
@@ -1060,21 +1142,23 @@
     }
   }
 
-  clearMemBtn.addEventListener('click', async () => {
-    const key = apiKeyEl.value.trim();
-    if (!key) return;
-    if (!confirm('Clear all memory? This cannot be undone.')) return;
-    try {
-      await fetch(`${API_BASE}/api/memory`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-or-key': key },
-        body: JSON.stringify({ userId: USER_ID }),
-      });
-      memResultsEl.innerHTML = '';
-      memSearchEl.value = '';
-      showToast('Memory cleared');
-    } catch { showToast('Failed to clear memory'); }
-  });
+  if (clearMemBtn && memSearchEl && memResultsEl) {
+    clearMemBtn.addEventListener('click', async () => {
+      const key = apiKey;
+      if (!key) return;
+      if (!confirm('Clear all memory? This cannot be undone.')) return;
+      try {
+        await fetch(`${API_BASE}/api/memory`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', 'x-or-key': key },
+          body: JSON.stringify({ userId: userId }),
+        });
+        memResultsEl.innerHTML = '';
+        memSearchEl.value = '';
+        showToast('Memory cleared');
+      } catch { showToast('Failed to clear memory'); }
+    });
+  }
 
   // --- Clear / New ---
   clearBtn.addEventListener('click', () => {
