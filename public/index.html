@@ -937,7 +937,11 @@
         mangle: false,
         headerIds: false,
       });
-      return DOMPurify.sanitize(rawHtml);
+      const config = {
+        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+        ALLOWED_ATTR: ['href', 'title', 'target', 'rel'],
+      };
+      return DOMPurify.sanitize(rawHtml, config);
     }
 
     // Safe fallback if parser scripts fail to load.
